@@ -1,14 +1,15 @@
+#include <sys/mman.h>
+#include <unistd.h>
+#include <stdio.h>
 #include "utils.h"
 
-static const int bitsperbyte=8;
-
 extern void *mmalloc(size_t size){
-  size = divup(size, pagesize()) * pagesize();
+  size = divup(size, getpagesize()) * getpagesize();
   return mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 }
 
 extern void mmfree(void *p, size_t size){
-  size = divup(size, pagesize()) * pagesize();
+  size = divup(size, getpagesize()) * getpagesize();
   if (munmap(p, size) == -1) {
     perror("munmap");
   }
