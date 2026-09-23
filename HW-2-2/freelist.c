@@ -34,7 +34,7 @@ extern FreeList freelistcreate(size_t size, int l, int u) {
 }
 
 extern void freelistdelete(FreeList f, int l, int u) {
-    Level *lv = (Level *)f;
+    Level *lv = level(f, e, l);
     for(int e = l; e <= u; e++){
         bbmdelete(lv[e-l].bmap);
     }
@@ -42,7 +42,7 @@ extern void freelistdelete(FreeList f, int l, int u) {
 }
 
 extern void *freelistalloc(FreeList f, void *base, int e, int l) {
-    Level *lv = (Level *)f;
+    Level *lv = level(f, e, l);
 
     void *block = lv->addr;
     if(block){
