@@ -60,6 +60,18 @@ extern void freelistfree(FreeList f, void *base, void *mem, int e, int l);
 extern int freelistsize(FreeList f, void *base, void *mem, int l, int u);
 
 /**
+ * Computes the total number of bytes currently free, by walking every
+ * level's free list and summing (number of free blocks at that level)
+ * times (2^level).
+ *
+ * @param f The free-list handle to inspect.
+ * @param l The lower bound for the free-list range.
+ * @param u The upper bound for the free-list range.
+ * @return The total number of currently-free bytes across all levels.
+ */
+extern size_t freelistfreebytes(FreeList f, int l, int u);
+
+/**
  * Prints the current contents of the free list for debugging or inspection.
  *
  * @param f The free-list handle to display.

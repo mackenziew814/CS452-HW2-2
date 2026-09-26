@@ -104,6 +104,19 @@ extern int freelistsize(FreeList f, void *base, void *mem, int l, int u) {
     return u;
 }
 
+extern size_t freelistfreebytes(FreeList f, int l, int u) {
+    size_t total = 0;
+    for (int e = l; e <= u; e++) {
+        Level *lv = level(f, e, l);
+        size_t count = 0;
+        for (void *block = lv->addr; block; block = *(void **)block) {
+            count++;
+        }
+        total += count * e2size(e);
+    }
+    return total;
+}
+
 extern void freelistprint(FreeList f, int l, int u) {
     for(int e = l; e <= u; e++){
         Level *lv = level(f, e, l);
