@@ -1,6 +1,6 @@
 #include "freelist.h"
 #include "utils.h"
-#include "bbm.c"
+#include "bbm.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -11,31 +11,32 @@ typedef struct Level {
 } Level;
 
 //Returns pointer to level struct for e in array
-static Level *level(Freelist f, int e, int l){
+static Level *level(FreeList f, int e, int l){
     return &((Level *)f)[(e - l)];
 }
 
 extern FreeList freelistcreate(size_t size, int l, int u) {
     int n = u - l + 1;
     Level *lv = mmalloc(n * sizeof *lv);
-    if(lv == -1){
+    if((long)lv == -1){
         return 0;
     }
 
-    for(int e = l; e <= u; e++){
+    // Every level except the top gets its own split-bitmap.
+    for(int e = l; e < u; e++){
         lv[e-l].addr = 0;
         lv[e-l].bmap = bbmcreate(size, e);
     }
 
-    //Top level of bbmap should only be a single bit
+    // The top level has nothing above it to split from or merge into,so no bitmap is needed.
     lv[u-l].addr = 0;
     lv[u-l].bmap = 0;
     return lv;
 }
 
 extern void freelistdelete(FreeList f, int l, int u) {
-    Level *lv = level(f, e, l);
-    for(int e = l; e <= u; e++){
+    Level *lv = f;
+    for(int e = l; e < u; e++){
         bbmdelete(lv[e-l].bmap);
     }
     mmfree(lv, (u - l + 1) * sizeof *lv);
@@ -60,6 +61,8 @@ extern void *freelistalloc(FreeList f, void *base, int e, int l) {
     }
 
     void *right = baddrset(base, parent, e);
+    // preserve whatever was already there, not overwrite it.
+    *(void **)right = lv->addr;
     lv->addr = right;
 
     bbmset(lv->bmap, base, parent, e);
@@ -79,7 +82,7 @@ extern void freelistfree(FreeList f, void *base, void *mem, int e, int l) {
 
         if(*link == buddy){
             *link = *(void **)buddy;
-            bbmclear(lv->bmap, base, mem, e); //clear mergeed half
+            bbmclr(lv->bmap, base, mem, e); //clear merged pair's split-bit
             void *merged = baddrclr(base, mem, e); //Merged block of buddies
             freelistfree(f, base, merged, e + 1, l);
             return;
@@ -92,7 +95,7 @@ extern void freelistfree(FreeList f, void *base, void *mem, int e, int l) {
 }
 
 extern int freelistsize(FreeList f, void *base, void *mem, int l, int u) {
-    for(int e = l; e <= u; e++){
+    for(int e = l; e < u; e++){
         Level *lv = level(f, e, l);
         if(bbmtst(lv->bmap, base, mem, e)){
             return e;
